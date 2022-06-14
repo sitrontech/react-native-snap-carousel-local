@@ -5,10 +5,12 @@ import shallowCompare from 'react-addons-shallow-compare';
 import {
     defaultScrollInterpolator,
     stackScrollInterpolator,
+    stack3ScrollInterpolator,
     tinderScrollInterpolator,
     defaultAnimatedStyles,
     shiftAnimatedStyles,
     stackAnimatedStyles,
+    stack3AnimatedStyles,
     tinderAnimatedStyles
 } from '../utils/animations';
 
@@ -67,7 +69,8 @@ export default class Carousel extends Component {
         useScrollView: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
         vertical: PropTypes.bool,
         onBeforeSnapToItem: PropTypes.func,
-        onSnapToItem: PropTypes.func
+        onSnapToItem: PropTypes.func,
+        onRender3: PropTypes.bool
     };
 
     static defaultProps = {
@@ -99,7 +102,8 @@ export default class Carousel extends Component {
         shouldOptimizeUpdates: true,
         swipeThreshold: 20,
         useScrollView: !AnimatedFlatList,
-        vertical: false
+        vertical: false,
+        onRender3: false
     }
 
     constructor (props) {
@@ -145,7 +149,7 @@ export default class Carousel extends Component {
         this._getKeyExtractor = this._getKeyExtractor.bind(this);
 
         this._setScrollHandler(props);
-
+        this._onRender3 = props.onRender3;
         // This bool aims at fixing an iOS bug due to scrollTo that triggers onMomentumScrollEnd.
         // onMomentumScrollEnd fires this._snapScroll, thus creating an infinite loop.
         this._ignoreNextMomentum = false;
@@ -572,7 +576,7 @@ export default class Carousel extends Component {
     }
 
     _initPositionsAndInterpolators (props = this.props) {
-        const { data, itemWidth, itemHeight, scrollInterpolator, vertical } = props;
+        const { data, itemWidth, itemHeight, scrollInterpolator, vertical, onRender3 } = props;
         const sizeRef = vertical ? itemHeight : itemWidth;
 
         if (!data || !data.length) {
@@ -600,9 +604,11 @@ export default class Carousel extends Component {
 
                 if (scrollInterpolator) {
                     interpolator = scrollInterpolator(_index, props);
-                } else if (this._shouldUseStackLayout()) {
+                } else if (this._shouldUseStackLayout() && onRender3) {
+                    interpolator = stack3ScrollInterpolator(_index, props);
+                }  else if (this._shouldUseStackLayout()) {
                     interpolator = stackScrollInterpolator(_index, props);
-                } else if (this._shouldUseTinderLayout()) {
+                }else if (this._shouldUseTinderLayout()) {
                     interpolator = tinderScrollInterpolator(_index, props);
                 }
 
@@ -1179,12 +1185,14 @@ export default class Carousel extends Component {
     }
 
     _getSlideInterpolatedStyle (index, animatedValue) {
-        const { layoutCardOffset, slideInterpolatedStyle } = this.props;
+        const { layoutCardOffset, slideInterpolatedStyle, onRender3 } = this.props;
 
         if (slideInterpolatedStyle) {
             return slideInterpolatedStyle(index, animatedValue, this.props);
         } else if (this._shouldUseTinderLayout()) {
             return tinderAnimatedStyles(index, animatedValue, this.props, layoutCardOffset);
+        } else if (this._shouldUseStackLayout() && onRender3) {
+            return stack3AnimatedStyles(index, animatedValue, this.props, layoutCardOffset);
         } else if (this._shouldUseStackLayout()) {
             return stackAnimatedStyles(index, animatedValue, this.props, layoutCardOffset);
         } else if (this._shouldUseShiftLayout()) {
