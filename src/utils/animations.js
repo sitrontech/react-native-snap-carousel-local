@@ -122,11 +122,101 @@ export function stackScrollInterpolator (index, carouselProps) {
 
     return { inputRange, outputRange };
 }
+export function stack3ScrollInterpolator (index, carouselProps) {
+    const range = IS_ANDROID ? [3, 2, 1, 0, -1, -2, -3] : [3, 2, 1, 0, -1, -2, -3];
+
+
+    const inputRange = getInputRangeFromIndexes(range, index, carouselProps);
+    const outputRange = range;
+
+    return { inputRange, outputRange };
+}
 export function stackAnimatedStyles (index, animatedValue, carouselProps, cardOffset) {
     const sizeRef = carouselProps.vertical ? carouselProps.itemHeight : carouselProps.itemWidth;
     const translateProp = carouselProps.vertical ? 'translateY' : 'translateX';
 
     const card1Scale = 0.9;
+    const card2Scale = 0.75;
+
+    cardOffset = !cardOffset && cardOffset !== 0 ? 18 : cardOffset;
+
+    const getTranslateFromScale = (cardIndex, scale) => {
+        const centerFactor = 1 / scale * cardIndex;
+        const centeredPosition = -Math.round(sizeRef * centerFactor);
+        const edgeAlignment = Math.round((sizeRef - (sizeRef * scale)) / 2);
+        const offset = Math.round(cardOffset * Math.abs(cardIndex) / scale);
+
+        return IS_ANDROID ?
+            centeredPosition - edgeAlignment - offset :
+            centeredPosition + edgeAlignment + offset;
+    };
+
+    const opacityOutputRange = carouselProps.inactiveSlideOpacity === 1 ? [1, 1, 1, 0] : [1, 0.75, 0.5, 0];
+
+    return IS_ANDROID ? { // elevation: carouselProps.data.length - index, // fix zIndex bug visually, but not from a logic point of view 
+        zIndex: animatedValue.interpolate(
+            { 
+                inputRange:[-3, -2, -1, 0, 1, 2, 3], 
+                outputRange: [0, 1, 2, 3, 2, 1, 0], 
+                extrapolate: 'clamp' 
+            }
+            ), 
+            opacity: animatedValue.interpolate(
+                { 
+                    inputRange: [ -3, -2, -1, 0, 1, 2, 3],
+                    outputRange: [0, carouselProps.inactiveSlideOpacity-0.2, carouselProps.inactiveSlideOpacity, 1, carouselProps.inactiveSlideOpacity, carouselProps.inactiveSlideOpacity-0.2, 0],
+                    extrapolate: 'clamp' 
+                }
+                ), 
+                transform: [
+                    { 
+                        scale: animatedValue.interpolate(
+                            { 
+                                inputRange: [-2,-1, 0, 1,2], 
+                                    outputRange: [card2Scale,card1Scale, 1, card1Scale,card2Scale], 
+                                    extrapolate: 'clamp'
+                            }
+                            ) 
+                        }, 
+                        { 
+                            [translateProp]: animatedValue.interpolate({ 
+                                inputRange: [-3, -2, -1, 0, 1, 2, 3], 
+                                    outputRange: [ 240, 240, 105, 0, -105, -240, 0 ], 
+                                    extrapolate: 'clamp'  
+                            }) 
+                        }] 
+                    } : { 
+                        zIndex: animatedValue.interpolate({ 
+                        inputRange:[-3, -2, -1, 0, 1, 2, 3], 
+                        outputRange: [0, 1, 2, 3, 2, 1, 0], 
+                        extrapolate: 'clamp' 
+                    }), 
+                        opacity: animatedValue.interpolate({ 
+                            inputRange: [ -3, -2, -1, 0, 1, 2, 3],
+                            outputRange: [0, carouselProps.inactiveSlideOpacity-0.2, carouselProps.inactiveSlideOpacity, 1, carouselProps.inactiveSlideOpacity, carouselProps.inactiveSlideOpacity-0.2, 0],
+                            extrapolate: 'clamp' 
+                        }),
+                            transform: [{ 
+                                scale: animatedValue.interpolate({ 
+                                    inputRange: [-2,-1, 0, 1,2], 
+                                    outputRange: [card2Scale,card1Scale, 1, card1Scale,card2Scale], 
+                                    extrapolate: 'clamp' 
+                                    }) 
+                                }, 
+                                { [translateProp]: animatedValue.interpolate({ 
+                                    inputRange: [-3, -2, -1, 0, 1, 2, 3], 
+                                    outputRange: [ 240, 240, 105, 0, -105, -240, 0 ], 
+                                    extrapolate: 'clamp' 
+                                    }) 
+                                }] 
+    };
+}
+
+export function stack3AnimatedStyles (index, animatedValue, carouselProps, cardOffset) {
+    const sizeRef = carouselProps.vertical ? carouselProps.itemHeight : carouselProps.itemWidth;
+    const translateProp = carouselProps.vertical ? 'translateY' : 'translateX';
+
+    const card1Scale = 0.85;
     const card2Scale = 0.8;
 
     cardOffset = !cardOffset && cardOffset !== 0 ? 18 : cardOffset;
@@ -155,7 +245,7 @@ export function stackAnimatedStyles (index, animatedValue, carouselProps, cardOf
             opacity: animatedValue.interpolate(
                 { 
                     inputRange: [ -3, -2, -1, 0, 1, 2, 3], 
-                    outputRange: [0, 0.5, 0.5, 1, 0.5, 0.5, 0], 
+                    outputRange: [0, 0, carouselProps.inactiveSlideOpacity, 1, carouselProps.inactiveSlideOpacity, 0, 0],
                     extrapolate: 'clamp' 
                 }
                 ), 
@@ -163,8 +253,8 @@ export function stackAnimatedStyles (index, animatedValue, carouselProps, cardOf
                     { 
                         scale: animatedValue.interpolate(
                             { 
-                                inputRange: [-2, -1, 0, 1, 2], 
-                                outputRange: [card2Scale, card1Scale, 1, card1Scale, card2Scale], 
+                                inputRange: [-1, 0, 1], 
+                                outputRange: [card1Scale, 1, card1Scale], 
                                 extrapolate: 'clamp' 
                             }
                             ) 
@@ -172,23 +262,23 @@ export function stackAnimatedStyles (index, animatedValue, carouselProps, cardOf
                         { 
                             [translateProp]: animatedValue.interpolate({ 
                                 inputRange: [-3, -2, -1, 0, 1, 2, 3], 
-                                outputRange: [ 250, 250, 85, 0, -75, -220, 0 ], 
+                                outputRange: [ 250, 250, 85, 0, -85, -220, 0 ], 
                                 extrapolate: 'clamp' 
                             }) 
                         }] 
                     } : { zIndex: animatedValue.interpolate({ 
-                        inputRange: [-3, -2, -1, 0, 1, 2, 3], 
+                        inputRange:[-3, -2, -1, 0, 1, 2, 3], 
                         outputRange: [0, 1, 2, 3, 2, 1, 0], 
                         extrapolate: 'clamp' 
                     }), 
                         opacity: animatedValue.interpolate({ 
                             inputRange: [ -3, -2, -1, 0, 1, 2, 3],
-                            outputRange: [0, 0.5, 0.7, 1, 0.7, 0.5, 0],
+                            outputRange: [0, 0, carouselProps.inactiveSlideOpacity, 1, carouselProps.inactiveSlideOpacity, 0, 0],
                             extrapolate: 'clamp' }),
                             transform: [{ 
                                 scale: animatedValue.interpolate({ 
-                                    inputRange: [-2, -1, 0, 1, 2], 
-                                    outputRange: [card2Scale, card1Scale, 1, card1Scale, card2Scale], 
+                                    inputRange: [-1, 0, 1], 
+                                    outputRange: [card1Scale, 1, card1Scale], 
                                     extrapolate: 'clamp' }) 
                                 }, 
                                 { [translateProp]: animatedValue.interpolate({ 
@@ -198,7 +288,6 @@ export function stackAnimatedStyles (index, animatedValue, carouselProps, cardOf
                                 }] 
     };
 }
-
 // Tinder animation
 // Imitate the popular Tinder layout
 // WARNING: The effect had to be visually inverted on Android because this OS doesn't honor the `zIndex`property
